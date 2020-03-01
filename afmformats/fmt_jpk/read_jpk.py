@@ -113,6 +113,7 @@ def load_jpk(path, callback=None, load_segment=None, conversion=True):
                         raise
                     mdi["enum"] = enum
                     segment = {}
+                    units = {}
 
                     if 'time' in load_segment:
                         # segment time
@@ -120,6 +121,7 @@ def load_jpk(path, callback=None, load_segment=None, conversion=True):
                                                       mdi["duration"],
                                                       mdi["point count"],
                                                       endpoint=False)
+                        units['time'] = 's'
 
                     if 'force' in load_segment:
                         # load force data
@@ -135,6 +137,7 @@ def load_jpk(path, callback=None, load_segment=None, conversion=True):
                             msg = "Unknown unit for force: {}".format(unit)
                             raise ReadJPKError(msg)
                         segment["force"] = force
+                        units["force"] = unit
 
                     if 'height (measured)' in load_segment:
                         # load height (measured) data
@@ -149,6 +152,7 @@ def load_jpk(path, callback=None, load_segment=None, conversion=True):
                             msg = "Unknown unit for height: {}".format(unit)
                             raise ReadJPKError(msg)
                         segment["height (measured)"] = height
+                        units["height (measured)"] = unit
 
                     if 'height (piezo)' in load_segment:
                         # load height (piezo) data
@@ -163,8 +167,9 @@ def load_jpk(path, callback=None, load_segment=None, conversion=True):
                             msg = "Unknown unit for piezo height: {}".format(unit)
                             raise ReadJPKError(msg)
                         segment["height (piezo)"] = heightp
+                        units["height (piezo)"] = unit
 
-                    mm.append([segment, mdi, path])
+                    mm.append([segment, mdi, path, units])
                 if callback:
                     # Callback with a float between 0 and 1 to update
                     # a progress dialog or somesuch.

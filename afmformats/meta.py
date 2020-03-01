@@ -41,6 +41,7 @@ META_FIELDS = {
         "speed approach": ["Piezo speed (approach)", "m/s", float],
         "speed retract": ["Piezo speed (retract)", "m/s", float],
         "z range": ["Axial piezo range", "m", float],
+        "units": [],
     },
     # QMap related dataset metadata
     "qmap": {

@@ -19,7 +19,7 @@ def load_jpk(path, callback=None, meta_override={}, **kwargs):
     # convert join the segment data
     dataset = []
     for mm in measurements:
-        (app, metadata, _), (ret, metadata_ret, _) = mm
+        (app, metadata, _, units), (ret, metadata_ret, _, _) = mm
         metadata["path"] = pathlib.Path(path)
         metadata["duration"] += metadata_ret["duration"]
         metadata["rate retract"] = metadata_ret["rate retract"]
@@ -37,6 +37,7 @@ def load_jpk(path, callback=None, meta_override={}, **kwargs):
             metadata["z range"] = np.ptp(data["height (piezo)"])
         data["segment"] = np.concatenate((np.zeros(lenapp, dtype=bool),
                                           np.ones(lenret, dtype=bool)))
+        metadata['units'] = units
         metadata.update(meta_override)
         dataset.append({"data": data,
                         "metadata": metadata,
