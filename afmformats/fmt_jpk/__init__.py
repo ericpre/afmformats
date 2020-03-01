@@ -7,7 +7,7 @@ from . import read_jpk
 __all__ = ["load_jpk"]
 
 
-def load_jpk(path, callback=None, meta_override={}):
+def load_jpk(path, callback=None, meta_override={}, **kwargs):
     """Loads JPK Instruments data files
 
     These files are zip files containing java property files and
@@ -15,7 +15,7 @@ def load_jpk(path, callback=None, meta_override={}):
     on how to convert the raw integer data to SI units.
     """
     # load the data
-    measurements = read_jpk.load_jpk(path=path, callback=callback)
+    measurements = read_jpk.load_jpk(path=path, callback=callback, **kwargs)
     # convert join the segment data
     dataset = []
     for mm in measurements:
@@ -28,11 +28,13 @@ def load_jpk(path, callback=None, meta_override={}):
         # join segments
         lenapp = len(app[list(app.keys())[0]])
         lenret = len(ret[list(ret.keys())[0]])
-        ret["time"] += metadata["duration"]
+        if 'time' in ret.keys():
+            ret["time"] += metadata["duration"]
         data = {}
         for key in app.keys():
             data[key] = np.concatenate((app[key], ret[key]))
-        metadata["z range"] = np.ptp(data["height (piezo)"])
+        if 'height (piezo)' in data.keys():
+            metadata["z range"] = np.ptp(data["height (piezo)"])
         data["segment"] = np.concatenate((np.zeros(lenapp, dtype=bool),
                                           np.ones(lenret, dtype=bool)))
         metadata.update(meta_override)

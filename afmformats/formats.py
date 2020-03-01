@@ -15,7 +15,7 @@ __all__ = ["load_data", "formats_available", "formats_by_suffix",
 
 
 def load_data(path, mode=None, diskcache=False, callback=None,
-              meta_override={}):
+              meta_override={}, **kwargs):
     """Load AFM data
 
     Parameters
@@ -43,7 +43,8 @@ def load_data(path, mode=None, diskcache=False, callback=None,
         if mode == "force-distance":
             loader = recipe["loader"]
             for dd in loader(path, callback=callback,
-                             meta_override=meta_override):
+                             meta_override=meta_override,
+                             **kwargs):
                 dd["metadata"]["format"] = "{} ({})".format(recipe["maker"],
                                                             recipe["descr"])
                 ddi = AFMForceDistance(data=dd["data"],

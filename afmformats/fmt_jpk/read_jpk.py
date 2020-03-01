@@ -62,7 +62,7 @@ def find_column(loc_list, id_list):
     return col, dd
 
 
-def load_jpk(path, callback=None):
+def load_jpk(path, callback=None, load_segment=None):
     """Extracts force, measured height, and time from JPK files
 
     All columns are returned in SI units.
@@ -74,6 +74,9 @@ def load_jpk(path, callback=None):
     callback: callable or None
         A method that accepts a float between 0 and 1
         to externally track the process of loading the data.
+    load_segment: lsit of str or None
+        Specify the segment(s) to load; Segment can be 'time', 'force',
+        'height (measured)' or 'height (piezo)'.
     """
     path = pathlib.Path(path)
     if callback:
@@ -82,6 +85,9 @@ def load_jpk(path, callback=None):
     tdir = meta.extract_jpk(path, props_only=True)
     # Get data file names
     indexlist = meta.get_data_list(path)
+
+    if load_segment is None:
+        load_segment = ['time', 'force', 'height (measured)', 'height (piezo)']
 
     measurements = []
     try:
@@ -107,49 +113,55 @@ def load_jpk(path, callback=None):
                         raise
                     mdi["enum"] = enum
                     segment = {}
-                    # segment time
-                    segment["time"] = np.linspace(0,
-                                                  mdi["duration"],
-                                                  mdi["point count"],
-                                                  endpoint=False)
-                    # load force data
-                    force_col, force_dat = find_column(loc_list=curve,
-                                                       id_list=VALID_IDS_FORCE)
-                    arc.extract(force_dat, str(tdir))
-                    force, unit, _n = load_jpk_single_curve(segroot,
-                                                            segment=mi,
-                                                            column=force_col,
-                                                            slot="force")
-                    if unit != "N":
-                        msg = "Unknown unit for force: {}".format(unit)
-                        raise ReadJPKError(msg)
-                    segment["force"] = force
 
-                    # load height (measured) data
-                    meas_col, meas_dat = find_column(loc_list=curve,
-                                                     id_list=VALID_IDS_HEIGHT)
-                    arc.extract(meas_dat, str(tdir))
-                    height, unit, _ = load_jpk_single_curve(segroot,
-                                                            segment=mi,
-                                                            column=meas_col,
-                                                            slot="nominal")
-                    if unit != "m":
-                        msg = "Unknown unit for height: {}".format(unit)
-                        raise ReadJPKError(msg)
-                    segment["height (measured)"] = height
+                    if 'time' in load_segment:
+                        # segment time
+                        segment["time"] = np.linspace(0,
+                                                      mdi["duration"],
+                                                      mdi["point count"],
+                                                      endpoint=False)
 
-                    # load height (piezo) data
-                    piezo_col, piezo_dat = find_column(loc_list=curve,
-                                                       id_list=VALID_IDS_PIEZO)
-                    arc.extract(piezo_dat, str(tdir))
-                    heightp, unit, _ = load_jpk_single_curve(segroot,
-                                                             segment=mi,
-                                                             column=piezo_col,
-                                                             slot="calibrated")
-                    if unit != "m":
-                        msg = "Unknown unit for piezo height: {}".format(unit)
-                        raise ReadJPKError(msg)
-                    segment["height (piezo)"] = heightp
+                    if 'force' in load_segment:
+                        # load force data
+                        force_col, force_dat = find_column(loc_list=curve,
+                                                           id_list=VALID_IDS_FORCE)
+                        arc.extract(force_dat, str(tdir))
+                        force, unit, _n = load_jpk_single_curve(segroot,
+                                                                segment=mi,
+                                                                column=force_col,
+                                                                slot="force")
+                        if unit != "N":
+                            msg = "Unknown unit for force: {}".format(unit)
+                            raise ReadJPKError(msg)
+                        segment["force"] = force
+
+                    if 'height (measured)' in load_segment:
+                        # load height (measured) data
+                        meas_col, meas_dat = find_column(loc_list=curve,
+                                                         id_list=VALID_IDS_HEIGHT)
+                        arc.extract(meas_dat, str(tdir))
+                        height, unit, _ = load_jpk_single_curve(segroot,
+                                                                segment=mi,
+                                                                column=meas_col,
+                                                                slot="nominal")
+                        if unit != "m":
+                            msg = "Unknown unit for height: {}".format(unit)
+                            raise ReadJPKError(msg)
+                        segment["height (measured)"] = height
+
+                    if 'height (piezo)' in load_segment:
+                        # load height (piezo) data
+                        piezo_col, piezo_dat = find_column(loc_list=curve,
+                                                           id_list=VALID_IDS_PIEZO)
+                        arc.extract(piezo_dat, str(tdir))
+                        heightp, unit, _ = load_jpk_single_curve(segroot,
+                                                                 segment=mi,
+                                                                 column=piezo_col,
+                                                                 slot="calibrated")
+                        if unit != "m":
+                            msg = "Unknown unit for piezo height: {}".format(unit)
+                            raise ReadJPKError(msg)
+                        segment["height (piezo)"] = heightp
 
                     mm.append([segment, mdi, path])
                 if callback:
