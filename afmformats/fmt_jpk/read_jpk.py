@@ -62,7 +62,7 @@ def find_column(loc_list, id_list):
     return col, dd
 
 
-def load_jpk(path, callback=None, load_segment=None):
+def load_jpk(path, callback=None, load_segment=None, conversion=True):
     """Extracts force, measured height, and time from JPK files
 
     All columns are returned in SI units.
@@ -126,11 +126,12 @@ def load_jpk(path, callback=None, load_segment=None):
                         force_col, force_dat = find_column(loc_list=curve,
                                                            id_list=VALID_IDS_FORCE)
                         arc.extract(force_dat, str(tdir))
+                        slot = 'force' if conversion else "volts"
                         force, unit, _n = load_jpk_single_curve(segroot,
                                                                 segment=mi,
                                                                 column=force_col,
-                                                                slot="force")
-                        if unit != "N":
+                                                                slot=slot)
+                        if unit not in ["N", "V"]:
                             msg = "Unknown unit for force: {}".format(unit)
                             raise ReadJPKError(msg)
                         segment["force"] = force
@@ -487,37 +488,39 @@ def load_dat_unit(path_dat, slot="default"):
     # get base unit
     base = prop[conv+".conversions.base"]
 
-    # Now iterate through the conversion sets until we have the base converter.
-    # A list of multipliers and offsets
-    converters = []
-    curslot = slot
-
-    while curslot != base:
-        # Get current slot multipliers and offsets
-        off_str = conv+".conversion.{}.scaling.offset".format(curslot)
-        off = prop[off_str]
-        mult_str = conv+".conversion.{}.scaling.multiplier".format(curslot)
-        mult = prop[mult_str]
-        converters.append([mult, off])
-        sl_str = conv+".conversion.{}.base-calibration-slot".format(curslot)
-        curslot = prop[sl_str]
-
     # Get raw data
     data = load_dat_raw(path_dat)
-    for c in converters[::-1]:
-        data[:] = c[0] * data[:] + c[1]
 
     if base == slot:
-        unit_str = "channel.{}.data.encoder.scaling.unit.unit".format(key)
+        unit_str = "channel.{}.encoder.scaling.unit.unit".format(key)
         unit = prop[unit_str]
+        name_str = "channel.{}.channel.name".format(key)
     else:
+        # Now iterate through the conversion sets until we have the base converter.
+        # A list of multipliers and offsets
+        converters = []
+        curslot = slot
+    
+        while curslot != base:
+            # Get current slot multipliers and offsets
+            off_str = conv+".conversion.{}.scaling.offset".format(curslot)
+            off = prop[off_str]
+            mult_str = conv+".conversion.{}.scaling.multiplier".format(curslot)
+            mult = prop[mult_str]
+            converters.append([mult, off])
+            sl_str = conv+".conversion.{}.base-calibration-slot".format(curslot)
+            curslot = prop[sl_str]
+
+        for c in converters[::-1]:
+            data[:] = c[0] * data[:] + c[1]
         try:
             unit_str = conv+".conversion.{}.scaling.unit".format(slot)
             unit = prop[unit_str]
         except KeyError:
             unit_str = conv+".conversion.{}.scaling.unit.unit".format(slot)
             unit = prop[unit_str]
+        name_str = conv+".conversion.{}.name".format(slot)
 
-    name_str = conv+".conversion.{}.name".format(slot)
     name = prop[name_str]
+
     return data, unit, "{} ({})".format(key, name)
